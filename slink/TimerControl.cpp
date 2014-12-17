@@ -98,7 +98,7 @@ inline int16 TimerChannel::pop_front()
     int16 *phase = _rbuf.pop_front();
     if(phase == NULL)
     {
-        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
         if ((_last_phase % PHASE_COUNT) != 0)
         {
             _last_phase = (((_last_phase / PHASE_COUNT) + 1) * PHASE_COUNT) % TIMER_COUNT;

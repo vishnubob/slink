@@ -303,8 +303,8 @@ void loop()
     delay(100);
 
     /* wait for button press */
-    while (!debounce(BUTTON_STARTUP_PIN, HIGH))
-    {}
+    //while (!debounce(BUTTON_STARTUP_PIN, HIGH))
+    //{}
         
     digitalWrite(LED_PIN, LOW);
     ramp_motor_up();
@@ -316,6 +316,7 @@ void loop()
 
 void slink_flush()
 {
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     /* flush the ring buffers */
     bool all_channels_empty = false;
     while(!all_channels_empty)
