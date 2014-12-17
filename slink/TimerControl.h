@@ -24,6 +24,7 @@ public:
     inline int16 pop_front();
     bool is_empty();
     inline void set_ocm(bool onoff);
+    inline bool flip_ocm();
     inline void isr(void);
 
 private:
@@ -32,7 +33,6 @@ private:
     timer_dev               *_timer;
     uint8                   _channel;
     uint8                   _pin;
-    uint8                   _state;
 };
 
 void configure_timers(bool enable_uev = false);
