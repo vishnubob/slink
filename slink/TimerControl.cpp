@@ -91,6 +91,8 @@ bool TimerChannel::is_empty()
 // phase information to this channel.
 void TimerChannel::push_back(int16 relative_phase)
 {
+    relative_phase = ((relative_phase - 128 + 512) % 256) + 128;
+    relative_phase *= PHASE_SCALE_FACTOR;
     _rbuf.push_back(relative_phase);
 }
 
@@ -101,7 +103,7 @@ inline int16 TimerChannel::pop_front()
     int16 *phase = _rbuf.pop_front();
     if(phase == NULL)
     {
-        //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
         if ((_last_phase % PHASE_COUNT) != 0)
         {
             _last_phase = (((_last_phase / PHASE_COUNT) + 1) * PHASE_COUNT) % TIMER_COUNT;
@@ -189,9 +191,7 @@ inline void TimerChannel::isr(void)
     if (flip_ocm())
     {
         // we are currently off
-        next_phase = ((pop_front() - 128 + 512) % 256) + 128;
-        next_phase = ((next_phase * PHASE_SCALE_FACTOR) + _last_phase) % TIMER_COUNT;
-        //next_phase = ((pop_front() * PHASE_SCALE_FACTOR) + _last_phase + PHASE_COUNT) % TIMER_COUNT;
+        next_phase = (pop_front() + _last_phase) % TIMER_COUNT;
         timer_set_compare(_timer, _channel, next_phase);
         _last_phase = next_phase;
     } else

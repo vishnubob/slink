@@ -129,15 +129,14 @@ bool slink_loop()
             previous_phase[ch] = phase[ch];
             phase[ch] = calcNextFrame(ch);
 #ifdef SERIAL_DEBUG
-            //SerialUSB.print(phase[ch] - previous_phase[ch]);
-            //SerialUSB.print(" ");
+            SerialUSB.print(phase[ch] - previous_phase[ch]);
+            SerialUSB.print(" ");
 #else
             TimerChannels[ch].push_back(phase[ch] - previous_phase[ch]);
 #endif
         }
 
 #ifdef SERIAL_DEBUG
-        /*
         SerialUSB.print(timeUntilChange);
         SerialUSB.print(") ");
         for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
@@ -146,7 +145,6 @@ bool slink_loop()
             SerialUSB.print(" ");
         }
         SerialUSB.print(" ");
-        */
 #endif
 
         timeSoFar++;
@@ -167,7 +165,6 @@ bool slink_loop()
         SerialUSB.print("Mode: ");
         SerialUSB.println(current_mode);
 #else
-        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
         slink_flush();
 #endif
     }
@@ -276,7 +273,6 @@ void setup()
 
     /* Debug LED */
     pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, HIGH);
 
     /* misc pins */
     pinMode(BUTTON_STARTUP_PIN, INPUT_PULLUP);
@@ -291,8 +287,6 @@ void setup()
 
     // check to see if the maintenance button
     // is being held down
-    // XXX DEBUG
-    /*
     if (debounce(BUTTON_MAINTENANCE_PIN, LOW))
     {
         maintenance_mode();
@@ -302,10 +296,6 @@ void setup()
         configure_timers();
         start_timers();
     }
-    */
-    TIMER_COUNT = PHASE_COUNT * 32;
-    configure_timers();
-    start_timers();
 }
 
 void loop()
@@ -313,16 +303,10 @@ void loop()
     delay(100);
 
     /* wait for button press */
-    // XXX DEBUG
-    /*
     while (!debounce(BUTTON_STARTUP_PIN, HIGH))
     {}
-    */
         
-    digitalWrite(LED_PIN, HIGH);
     ramp_motor_up();
-    digitalWrite(LED_PIN, LOW);
-    //delay(500);
     reset_slink();
     while(slink_loop()) {}
     ramp_motor_down();
