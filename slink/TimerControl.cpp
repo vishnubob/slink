@@ -47,7 +47,6 @@ void TimerChannel::init(const pin_timer_channel_t *tpin)
     _channel = tpin->channel;
     _pin = tpin->pin;
     _last_phase = 0;
-    _state = STATE_OFF;
 
     pinMode(_pin, PWM);
     timer_gen_reg_map *timer = (_timer->regs).gen;
@@ -55,22 +54,26 @@ void TimerChannel::init(const pin_timer_channel_t *tpin)
     {
         case 1:
             timer->CCMR1 &= ~(0x00FF);
-            timer->CCMR1 |= 0x0040;
+            timer->CCMR1 |= 0x0020;
+            // enable compare output
             timer->CCER |= 0x0001;
             break;
         case 2:
             timer->CCMR1 &= ~(0xFF00);
-            timer->CCMR1 |= 0x4000;
+            timer->CCMR1 |= 0x2000;
+            // enable compare output
             timer->CCER |= 0x0010;
             break;
         case 3:
             timer->CCMR2 &= ~(0x00FF);
-            timer->CCMR2 |= 0x0040;
+            timer->CCMR2 |= 0x0020;
+            // enable compare output
             timer->CCER |= 0x0100;
             break;
         case 4:
             timer->CCMR2 &= ~(0xFF00);
-            timer->CCMR2 |= 0x4000;
+            timer->CCMR2 |= 0x2000;
+            // enable compare output
             timer->CCER |= 0x1000;
             break;
     }
@@ -88,6 +91,8 @@ bool TimerChannel::is_empty()
 // phase information to this channel.
 void TimerChannel::push_back(int16 relative_phase)
 {
+    relative_phase = ((relative_phase - 128 + 512) % 256) + 128;
+    relative_phase *= PHASE_SCALE_FACTOR;
     _rbuf.push_back(relative_phase);
 }
 
@@ -104,9 +109,22 @@ inline int16 TimerChannel::pop_front()
             _last_phase = (((_last_phase / PHASE_COUNT) + 1) * PHASE_COUNT) % TIMER_COUNT;
         }
         return 0;
-    } 
+    }
     return *phase;
 }
+
+inline bool TimerChannel::flip_ocm()
+{
+    /* channel == 1,2 -> CCMR1; channel == 3,4 -> CCMR2 */
+    __io uint32 *ccmr = &(_timer->regs).gen->CCMR1 + (((_channel - 1) >> 1) & 1);
+    /* channel == 1,3 -> shift = 0, channel == 2,4 -> shift = 8 */
+    uint8 shift = 8 * (1 - (_channel & 1));
+    /* toggle OCxM bits */
+    *ccmr ^= (TIMER_OC_MODE_TOGGLE << shift);
+    /* return true if channel is about to turn on */
+    return *ccmr & (TIMER_OC_MODE_ACTIVE_ON_MATCH << shift);
+}
+
 
 // This method manipulates the OC?M bits that dictate how a compare
 // interrupt should affect its bound pin.  By setting onoff to true,
@@ -170,24 +188,17 @@ inline void TimerChannel::isr(void)
 {
     int32 next_phase;
 
-    switch(_state)
+    if (flip_ocm())
     {
         // we are currently off
-        case STATE_OFF:
-            set_ocm(true);
-            next_phase = ((pop_front() - 128 + 512) % 256) + 128;
-            next_phase = ((next_phase * PHASE_SCALE_FACTOR) + _last_phase) % TIMER_COUNT;
-            //next_phase = ((pop_front() * PHASE_SCALE_FACTOR) + _last_phase + PHASE_COUNT) % TIMER_COUNT;
-            timer_set_compare(_timer, _channel, next_phase);
-            _state = STATE_ON;
-            _last_phase = next_phase;
-            break;
-        case STATE_ON:
-            set_ocm(false);
-            next_phase = (_last_phase + BRIGHTNESS) % TIMER_COUNT;
-            timer_set_compare(_timer, _channel, next_phase);
-            _state = STATE_OFF;
-            break;
+        next_phase = (pop_front() + _last_phase) % TIMER_COUNT;
+        timer_set_compare(_timer, _channel, next_phase);
+        _last_phase = next_phase;
+    } else
+    {
+        // we are currently off
+        next_phase = (_last_phase + BRIGHTNESS) % TIMER_COUNT;
+        timer_set_compare(_timer, _channel, next_phase);
     }
 } 
 
@@ -215,19 +226,16 @@ void configure_timers(bool uev_enable)
     stop_timers();
 
     // Timer2
-    //Timer2.setPrescaleFactor(CLOCK_FREQUENCY / (PHASE_COUNT * BASE_FREQUENCY));
     Timer2.setOverflow(TIMER_COUNT - 1);
     // Timer2 is configured as a master
     timer2->CR2 |= (1 << 4);
 
     // Timer3 */
-    //Timer3.setPrescaleFactor(CLOCK_FREQUENCY / (PHASE_COUNT * BASE_FREQUENCY));
     Timer3.setOverflow(TIMER_COUNT - 1);
     // Connect timer3 to timer2 (ITR1), trigger mode
     timer3->SMCR = (1 << 4) | 6;
     
     // Timer4 */
-    //Timer4.setPrescaleFactor(CLOCK_FREQUENCY / (PHASE_COUNT * BASE_FREQUENCY));
     Timer4.setOverflow(TIMER_COUNT - 1);
     // Connect timer4 to timer2 (ITR1), trigger mode
     timer4->SMCR = (1 << 4) | 6;

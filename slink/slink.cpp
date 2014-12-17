@@ -254,6 +254,7 @@ void setup()
 #else
     SerialUSB.end();
 #endif
+    systick_disable();
 
     if(EEPROM.init() != EEPROM_OK)
     {
@@ -272,7 +273,6 @@ void setup()
 
     /* Debug LED */
     pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, HIGH);
 
     /* misc pins */
     pinMode(BUTTON_STARTUP_PIN, INPUT_PULLUP);
@@ -306,9 +306,7 @@ void loop()
     //while (!debounce(BUTTON_STARTUP_PIN, HIGH))
     //{}
         
-    digitalWrite(LED_PIN, LOW);
     ramp_motor_up();
-    //delay(500);
     reset_slink();
     while(slink_loop()) {}
     ramp_motor_down();

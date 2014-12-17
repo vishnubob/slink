@@ -22,10 +22,8 @@
 
 #define DEFAULT_PRESCALE        (CLOCK_FREQUENCY / (PHASE_COUNT * BASE_FREQUENCY))
 #define ADDRESS_PRESCALE        0x11
-//#define MAX_PRESCALE            (DEFAULT_PRESCALE + 200)
-//#define MIN_PRESCALE            (DEFAULT_PRESCALE - 200)
-#define MAX_PRESCALE        ((unsigned int)(CLOCK_FREQUENCY / (PHASE_COUNT * (BASE_FREQUENCY - 2))))
-#define MIN_PRESCALE        ((unsigned int)(CLOCK_FREQUENCY / (PHASE_COUNT * (BASE_FREQUENCY + 2))))
+#define MAX_PRESCALE            ((unsigned int)(CLOCK_FREQUENCY / (PHASE_COUNT * (BASE_FREQUENCY - 2))))
+#define MIN_PRESCALE            ((unsigned int)(CLOCK_FREQUENCY / (PHASE_COUNT * (BASE_FREQUENCY + 2))))
 
 /* pins */
 #define MOTOR_PWM_PIN           7
