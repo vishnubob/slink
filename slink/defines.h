@@ -8,8 +8,9 @@
 //#define TIMER_COUNT             (PHASE_COUNT * 32)
 #define BASE_FREQUENCY          50
 #define CLOCK_FREQUENCY         72000000
+//#define MODE_COUNT              12 
 #define MODE_COUNT              12 
-#define BUFFER_SIZE             400
+#define BUFFER_SIZE             0xFF * 2
 #define PRELOAD_COUNT           (BUFFER_SIZE / 2)
 //#define MOTOR_MAX_SPEED         22500
 #define MOTOR_MAX_SPEED         390

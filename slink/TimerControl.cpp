@@ -93,8 +93,6 @@ bool TimerChannel::is_full()
     return _rbuf.is_full();
 }
 
-
-
 // This method is called by the user-code to push 
 // phase information to this channel.
 void TimerChannel::push_back(int16 relative_phase)
@@ -108,16 +106,14 @@ void TimerChannel::push_back(int16 relative_phase)
 // to schedule the next phase offset.
 inline int16 TimerChannel::pop_front()
 {
-    int16 *phase = _rbuf.pop_front();
-    if((_run_flag == false) || (phase == NULL))
+    int16 *phase = NULL;
+    if (_run_flag)
+    {
+        phase = _rbuf.pop_front();
+    }
+    if(phase == NULL)
     {
         digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-        /*
-        if ((_last_phase % PHASE_COUNT) != 0)
-        {
-            _last_phase = (((_last_phase / PHASE_COUNT) + 1) * PHASE_COUNT) % TIMER_COUNT;
-        }
-        */
         return PHASE_COUNT;
     }
     return *phase;
