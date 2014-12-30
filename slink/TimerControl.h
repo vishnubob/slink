@@ -16,6 +16,10 @@ typedef struct pin_timer_channel
     voidFuncPtr         isr;
 } pin_timer_channel_t;
 
+extern volatile bool _run_flag;
+
+void run_animation(bool run);
+
 class TimerChannel
 {
 public:
@@ -23,6 +27,7 @@ public:
     void push_back(int16 relative_phase);
     inline int16 pop_front();
     bool is_empty();
+    bool is_full();
     inline void set_ocm(bool onoff);
     inline bool flip_ocm();
     inline void isr(void);

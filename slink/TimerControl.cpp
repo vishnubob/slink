@@ -13,6 +13,8 @@ uint16 PRESCALE;
 // Timer Count
 uint16 TIMER_COUNT;
 
+volatile bool _run_flag = false;
+
 // Channel Map
 // This associates a Pin with a timer, a channel, and a compare interrupt.
 // It is used to initialize the individual TimerChannel objects.
@@ -86,6 +88,12 @@ bool TimerChannel::is_empty()
     return _rbuf.is_empty();
 }
 
+bool TimerChannel::is_full()
+{
+    return _rbuf.is_full();
+}
+
+
 
 // This method is called by the user-code to push 
 // phase information to this channel.
@@ -101,14 +109,16 @@ void TimerChannel::push_back(int16 relative_phase)
 inline int16 TimerChannel::pop_front()
 {
     int16 *phase = _rbuf.pop_front();
-    if(phase == NULL)
+    if((_run_flag == false) || (phase == NULL))
     {
-        //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        /*
         if ((_last_phase % PHASE_COUNT) != 0)
         {
             _last_phase = (((_last_phase / PHASE_COUNT) + 1) * PHASE_COUNT) % TIMER_COUNT;
         }
-        return 0;
+        */
+        return PHASE_COUNT;
     }
     return *phase;
 }
@@ -292,3 +302,5 @@ void timer4_ch1_interrupt(void) { TimerChannels[8].isr(); }
 void timer4_ch2_interrupt(void) { TimerChannels[9].isr(); }
 void timer4_ch3_interrupt(void) { TimerChannels[10].isr(); }
 void timer4_ch4_interrupt(void) { TimerChannels[11].isr(); }
+
+void run_animation(bool run) { _run_flag = run; }

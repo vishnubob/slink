@@ -6,8 +6,10 @@
 // animations
 const animation_info_t animation_info[] =
 {
-    {0, 4}, {1, 2}, {2, 3}, {3, 4},
-    {4, 12}, {5, 5}, {6, 5}, {7, 2},
+    //{0, 4}, {1, 2}, {2, 3}, {3, 4},
+    //{4, 12}, {5, 5}, {6, 5}, {7, 2},
+    {0, 4}, {7, 2}, {7, 2}, {7, 2},
+    {7, 2}, {7, 2}, {7, 2}, {7, 2},
     {7, 2}, {7, 2}, {7, 2}, {7, 2},
 };
 
@@ -48,6 +50,7 @@ int32 startPosition[CHANNEL_COUNT];
 int32 returnDistance[CHANNEL_COUNT];
 
 void slink_flush();
+void slink_preload();
 int32 calcNextFrame(uint8 channel);
 
 /*******************************************************************************
@@ -109,6 +112,7 @@ void reset_slink()
     {
         phase[ch] = 0;
         previous_phase[ch] = 0;
+        TimerChannels[ch].push_back(0);
     }  
 
     /* initialize runtime variables */
@@ -118,37 +122,54 @@ void reset_slink()
     current_mode = animation_info[current_animation].mode_number;
 }
 
+void slink_step()
+{
+    // for each channel
+    for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
+    { 
+        // angular position
+        previous_phase[ch] = phase[ch];
+        phase[ch] = calcNextFrame(ch);
+#ifdef SERIAL_DEBUG
+        SerialUSB.print(phase[ch]);
+        SerialUSB.print(" ");
+#else
+        TimerChannels[ch].push_back(phase[ch] - previous_phase[ch]);
+#endif
+    }
+
+#ifdef SERIAL_DEBUG
+    SerialUSB.print(" (diff) [");
+    for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
+    { 
+        SerialUSB.print(phase[ch] - previous_phase[ch]);
+        SerialUSB.print(" ");
+        int16 relative_phase = phase[ch] - previous_phase[ch];
+        relative_phase = ((relative_phase - 128 + 512) % 256) + 128;
+        relative_phase *= PHASE_SCALE_FACTOR;
+    }
+    SerialUSB.print(" (rp) [");
+    for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
+    { 
+        int16 relative_phase = phase[ch] - previous_phase[ch];
+        relative_phase = ((relative_phase - 128 + 512) % 256) + 128;
+        relative_phase *= PHASE_SCALE_FACTOR;
+        SerialUSB.print(relative_phase);
+        SerialUSB.print(" ");
+    }
+    SerialUSB.print("] TTL: ");
+    SerialUSB.println(timeUntilChange);
+#endif
+
+    timeSoFar++;
+    timeUntilChange--;
+}
+
 bool slink_loop() 
 {
     if (timeUntilChange > 0)
     {
-        // for each channel
-        for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
-        { 
-            // angular position
-            previous_phase[ch] = phase[ch];
-            phase[ch] = calcNextFrame(ch);
-#ifdef SERIAL_DEBUG
-            SerialUSB.print(phase[ch] - previous_phase[ch]);
-            SerialUSB.print(" ");
-#else
-            TimerChannels[ch].push_back(phase[ch] - previous_phase[ch]);
-#endif
-        }
-
-#ifdef SERIAL_DEBUG
-        SerialUSB.print(timeUntilChange);
-        SerialUSB.print(") ");
-        for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
-        { 
-            SerialUSB.print(phase[ch] - previous_phase[ch]);
-            SerialUSB.print(" ");
-        }
-        SerialUSB.print(" ");
-#endif
-
-        timeSoFar++;
-        timeUntilChange--;
+        slink_step();
     } else
     {
         // advance animation step
@@ -166,6 +187,7 @@ bool slink_loop()
         SerialUSB.println(current_mode);
 #else
         slink_flush();
+        slink_preload();
 #endif
     }
     return true;
@@ -308,13 +330,13 @@ void loop()
         
     ramp_motor_up();
     reset_slink();
+    slink_preload();
     while(slink_loop()) {}
     ramp_motor_down();
 }
 
 void slink_flush()
 {
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     /* flush the ring buffers */
     bool all_channels_empty = false;
     while(!all_channels_empty)
@@ -323,6 +345,22 @@ void slink_flush()
         for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
             all_channels_empty &= TimerChannels[ch].is_empty();
     }
+}
+
+void slink_preload()
+{
+#ifndef SERIAL_DEBUG
+    /* flush the ring buffers */
+    run_animation(false);
+    bool any_channels_full = false;
+    while(!any_channels_full)
+    {
+        slink_step();
+        for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
+            any_channels_full |= TimerChannels[ch].is_full();
+    }
+    run_animation(true);
+#endif
 }
 
 // note, delta must go evenly!!
@@ -640,7 +678,7 @@ int32 freakOutAndComeTogether(int32 returnStepsPower, int32 tsf, uint8 channel)
         // check this, must be even multiple of returnSteps
         // startPosition[channel]=rand() & 255;	
         // 0 to 255
-        startPosition[channel] = (int32)random(256); 
+        startPosition[channel] = (int32)random(256) - 128;
         returnDistance[channel] = 256 - startPosition[channel];
         return phase[channel] + startPosition[channel];
     } else if (tsf < (1 << returnStepsPower)) 
