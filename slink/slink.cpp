@@ -107,6 +107,14 @@ void ramp_motor_down()
     digitalWrite(MOTOR_EN_PIN, LOW);
 }
 
+void zero_all_channels()
+{
+    for(int32 ch = 0; ch < CHANNEL_COUNT; ++ch)
+    {
+        TimerChannels[ch].zero_channel();
+    }  
+}
+
 void reset_phases()
 {
     for(int32 ch = 0; ch < CHANNEL_COUNT; ++ch)
@@ -114,6 +122,7 @@ void reset_phases()
         phase[ch] = 0;
         previous_phase[ch] = 0;
     }  
+    zero_all_channels();
 }
 
 void reset_slink()
@@ -360,14 +369,15 @@ void slink_flush()
 void slink_preload()
 {
 #ifndef SERIAL_DEBUG
-    /* flush the ring buffers */
     run_animation(false);
     bool any_channels_full = false;
     while((timeUntilChange > 0) && (any_channels_full == false))
     {
         slink_step();
         for(int ch = 0; ch < CHANNEL_COUNT; ++ch) 
+        {
             any_channels_full |= TimerChannels[ch].is_full();
+        }
     }
     run_animation(true);
 #endif
@@ -692,6 +702,15 @@ int32 freakOutAndComeTogether(int32 returnStepsPower, int32 tsf, uint8 channel)
     if (tsf <= (1 << returnStepsPower)) 
     {
         return startPosition[channel] + ((returnDistance[channel] * tsf) >> returnStepsPower);
+    }
+    return phase[channel];
+}
+
+int32 RandoTest(int32 tsf, uint8 channel) 
+{
+    if(tsf == 256) 
+    {
+        return random(256);
     }
     return phase[channel];
 }

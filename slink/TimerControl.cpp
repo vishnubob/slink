@@ -93,6 +93,15 @@ bool TimerChannel::is_full()
     return _rbuf.is_full();
 }
 
+// Zero channel
+void TimerChannel::zero_channel()
+{
+    int16 adjust = PHASE_COUNT - (_last_phase % PHASE_COUNT);
+    adjust /= PHASE_SCALE_FACTOR;
+    this->push_back(adjust);
+}
+
+
 // This method is called by the user-code to push 
 // phase information to this channel.
 void TimerChannel::push_back(int16 relative_phase)

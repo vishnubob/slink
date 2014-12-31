@@ -28,6 +28,7 @@ public:
     inline int16 pop_front();
     bool is_empty();
     bool is_full();
+    void zero_channel();
     inline void set_ocm(bool onoff);
     inline bool flip_ocm();
     inline void isr(void);
